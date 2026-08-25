@@ -272,6 +272,11 @@ td{padding:13px 10px 13px 0; border-bottom:1px solid rgba(192,162,104,.16); vert
         <input type="text" id="f-name" placeholder="How should we write you into the register?" autocomplete="name">
       </div>
 
+      <div class="field hide" id="code-field">
+        <label class="lbl" for="f-code">Invitation code</label>
+        <input type="text" id="f-code" placeholder="The code printed on your invitation">
+      </div>
+
       <div class="field">
         <span class="lbl">Are you coming?</span>
         <div class="answers">
@@ -334,6 +339,9 @@ var CONFIG = {
   host:       "Tobias",
   replyBy:    "2026-10-24",
 
+  // Set to true if you gave every guest a personal code in the Guests sheet.
+  askForCode: false,
+
   // Address of your Google Apps Script web app (see INSTRUCTIONS.md).
   // While this is empty the page runs in preview mode only.
   apiUrl:     ""
@@ -344,7 +352,7 @@ var CONFIG = {
 
 var DIETS = ["Vegetarian","Vegan","Tree nuts","Peanuts","Gluten","Lactose","Egg","Soy","Shellfish","No pork","No alcohol","Spicy food"];
 var count = 0, shownCount = 0, picked = [], myEntry = null, isHost = false, adminKey = "";
-var entries = [];                       // only filled in the host view
+var entries = [], pending = [];         // only filled in the host view
 var preview = !CONFIG.apiUrl;           // no backend configured
 var localEntries = [];                  // preview replies, this session only
 var lastError = "";
@@ -537,7 +545,8 @@ async function saveRsvp(){
     status: status,
     diets: status === "yes" ? picked.slice() : [],
     diet: status === "yes" ? el("f-diet").value.trim() : "",
-    note: el("f-note").value.trim()
+    note: el("f-note").value.trim(),
+    code: el("f-code") ? el("f-code").value.trim() : ""
   };
 
   if(preview){
@@ -550,6 +559,8 @@ async function saveRsvp(){
       var d = await apiPost(entry);
       if(!d || !d.ok) throw new Error((d && d.error) || "The spreadsheet refused the entry.");
       count = +d.count || count;
+      if(d.name) entry.name = d.name;      // spelling from the guest list
+      if(d.id) entry.id = d.id;
     }catch(e){
       btn.disabled = false; btn.textContent = "Sign the register";
       markError(el("f-name"), "Could not be sent: " + ((e && e.message) ? e.message : String(e)));
@@ -595,7 +606,7 @@ function loginPanel(){
     try{
       var d = await apiGet("action=list&key=" + encodeURIComponent(word));
       if(!d || !d.ok) throw new Error((d && d.error) || "Refused.");
-      entries = d.entries || []; adminKey = word; isHost = true;
+      entries = d.entries || []; pending = d.pending || []; adminKey = word; isHost = true;
       lsSet("host-word", word);
       adminPanel();
     }catch(e){
@@ -617,6 +628,10 @@ function adminPanel(){
     '<h3>Host view</h3>'+
     '<p class="hint">'+yes.length+' attending · '+(entries.length-yes.length)+' declined</p>'+
     '<h2 style="margin-top:30px">For the shopping list</h2><div>'+summary+'</div>'+
+    (pending.length
+      ? '<h2 style="margin-top:32px">Still to reply <span class="sub">'+pending.length+'</span></h2>'+
+        '<div>'+pending.map(function(n){ return '<span class="tag" style="border-color:rgba(192,162,104,.55); color:var(--brass)">'+esc(n)+'</span>'; }).join("")+'</div>'
+      : '')+
     '<h2 style="margin-top:32px">Every reply</h2>'+
     (entries.length
       ? '<table><thead><tr><th>Name</th><th>Reply</th><th>Allergies</th><th></th></tr></thead><tbody>'+
@@ -637,7 +652,7 @@ function adminPanel(){
     try{
       var d = await apiGet("action=list&key=" + encodeURIComponent(adminKey));
       if(d && d.ok){
-        entries = d.entries || [];
+        entries = d.entries || []; pending = d.pending || [];
         count = entries.filter(function(e){return e.status==="yes";}).length;
         renderCount(); adminPanel(); toast("Refreshed.");
       }
@@ -731,6 +746,8 @@ function watchReveals(){
 /* ---------------- Start ---------------- */
 (function init(){
   renderChips(); watchReveals(); renderHeader(); renderDetails();
+
+  if(CONFIG.askForCode) el("code-field").classList.remove("hide");
 
   var stored = lsGet("guest-reply");
   if(stored){ try{ myEntry = JSON.parse(stored); }catch(e){} }
