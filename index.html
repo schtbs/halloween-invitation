@@ -328,16 +328,15 @@ td{padding:13px 10px 13px 0; border-bottom:1px solid rgba(192,162,104,.16); vert
    file on GitHub. That is all it takes.
    ============================================================ */
 var CONFIG = {
-  title:      "Night of the Living Library",
-  intro:      "Candlelight, old books and a cauldron nobody should look into.",
+  title:      "All Hallows' Eve",  // the title of your event
+  intro:      "welcome to the witches lair",
   date:       "2026-10-31",        // format: YYYY-MM-DD
-  startTime:  "20:00",             // leave empty as "" to hide
-  dressCode:  "Tweed, velvet, black — a touch of witchcraft welcome",
-  food:       "Pumpkin soup, finger food, something dark in the cauldron",
-  notes:      "Park in the courtyard. Please do not let the cat out.",
-  contact:    "+49 170 1234567",
-  host:       "Tobias",
-  replyBy:    "2026-10-24",
+  startTime:  "1900",             // leave empty as "" to hide
+  dressCode:  "Casual / Costume optional",
+  food:       "Fingerfood, Snacks,alcoholic and non-alcoholic drinks",
+  notes:      "Guests in costume will automatically be entered in a prize draw.",
+  host:       "Carina",
+  replyBy:    "2026-09-30",
 
   // Set to true if you gave every guest a personal code in the Guests sheet.
   askForCode: false,
@@ -448,7 +447,6 @@ function renderDetails(){
     ["When", CONFIG.date ? niceDate(CONFIG.date) : "", CONFIG.startTime ? "From " + CONFIG.startTime : "", false],
     ["Dress code", CONFIG.dressCode, "", false],
     ["Food", CONFIG.food, "", false],
-    ["Contact", CONFIG.contact, "", false],
     ["Good to know", CONFIG.notes, "", true]
   ].filter(function(r){ return r[1]; });
   el("details").innerHTML = rows.length ? rows.map(function(r){
